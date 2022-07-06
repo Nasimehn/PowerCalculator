@@ -14,6 +14,7 @@ BiocManager::install("limma")
 BiocManager::install()
 
 library(limma)
+library(CpGassoc)
 
 ```
 
@@ -99,11 +100,12 @@ diseased_mean = calculate_means(diseased)
 ```{r setup, include=FALSE}
 #T.Test  #parametric
 
-#Remember to calculate new means for M-values 
-
-t_test = function(Grou1_mean, Group2_mean){
-t_test_output = t.test(healthy_mean, diseased_mean)
-return(t_test_output)
+t_test = function(simulated_data){
+phenotype = as.data.frame(colnames(simulated_data))
+names(phenotype) = "Group"  
+t_test_output <- cpg.assoc(beta.val=simulated_data, indep = phenotype$Group, logit.transform = TRUE) #indep = A vector containing the variable to be tested for association #logit.transform = transforming B-values to M-values 
+t_test_Pvalue = t_test_output$results$P.value
+return(t_test_Pvalue)
 }
 
 
@@ -138,8 +140,8 @@ fit1 <- lmFit(simulated_data, design_matrix)
 fit2 <- contrasts.fit(fit1, contrast_matrix)
 fit3 <- eBayes(fit2)
 limma_output = as.data.frame(fit3)
-
-return(limma_output)
+limma_Pvalue = limma_output$p.value
+return(limma_Pvalue)
 }
 
 ```
