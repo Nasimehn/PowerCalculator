@@ -18,6 +18,7 @@ library(CpGassoc)
 
 ```
 
+
 ```{r setup, include=FALSE}
 #unzipping 
 
@@ -51,7 +52,7 @@ return(workflow)
 ```
 
 ```{r setup, include=FALSE}
-run1 <- unzip_file(1)
+run1 <- unzip_file(2)
 
 ```
 
@@ -64,13 +65,12 @@ for (i in 1:n_zip){
 }
 return(all_runs_output)
 }
-
 ```
 
 
 ```{r setup, include=FALSE}
 
-run2 <- Get_all_zip(2)
+all_zips <- Get_all_zip(2)
 
 ```
 
@@ -91,23 +91,23 @@ Simulated_data <- extract_data_from_zip(run2,2,"Simulated_data")
 ```
 
 ```{r setup, include=FALSE}
-calculate_means <- function (beta_values_matrix) {
+#calculate_means <- function (beta_values_matrix) {
   # check stop if not() to make sure there are no non numeric values.
-  means <- rowMeans(beta_values_matrix, na.rm=TRUE)# if all values within a row are NA produces NaN
-  means <- na.omit(means) #add handling of NAs if values in the the vector are NAs
-  return(means)
-}
+  #means <- rowMeans(beta_values_matrix, na.rm=TRUE)# if all values within a row are NA produces NaN
+  #means <- na.omit(means) #add handling of NAs if values in the the vector are NAs
+  #return(means)
+#}
 #healthy_mean = calculate_means(healthy)
 #diseased_mean = calculate_means(diseased)
 
 ```
 
 ```{r setup, include=FALSE}
-get_healthy_proportion = function(all_zips, zip_file){
-user_parameters = extract_data_from_zip(all_zips, zip_file, "User_Parameters")
+get_healthy_proportion = function(all_zips, zip_file_order, simulated_data_frame){
+user_parameters = extract_data_from_zip(all_zips, zip_file_order, "User_Parameters")
 healthy_proportion = user_parameters$Value[user_parameters$Parameter == "Healthy proportion"]
-n_Group1 = ncol(Simulated_data)*healthy_proportion
-n_Group2 = ncol(Simulated_data)*1-healthy_proportion
+n_Group1 = ncol(simulated_data_frame)*healthy_proportion
+n_Group2 = ncol(simulated_data_frame)*(1-healthy_proportion)
 num_groups = c(n_Group1,n_Group2)
 return(num_groups)
 }
@@ -116,33 +116,24 @@ return(num_groups)
 
 ```{r setup, include=FALSE} 
 
-get_healthy_proportion(run2,1)
+get_healthy_proportion(all_zips,2, Simulated_data)
 
 ```
 
 ```{r setup, include=FALSE}
 
-local_t_test = function(Simulated_data){
-  for 
-} 
-
- t_test_output = t.test(Simulated_data[,1:30],Simulated_data[, 30:ncol(Simulated_data)])
-```
-
-```{r setup, include=FALSE}
-#T.Test  #parametric
-
-t_test = function(Simulated_data){
-phenotype = as.data.frame(colnames(Simulated_data))
-names(phenotype) = "Group"  
-t_test_output <- cpg.assoc(Simulated_data, indep = phenotype$Group, logit.transform = TRUE) #indep = A vector containing the variable to be tested for association #logit.transform = transforming B-values to M-values 
-t_test_Pvalue = t_test_output$results$P.value
-return(t_test_Pvalue)
+local_t_test = function(all_zips, zip_file_order){
+  simulated_data_frame = extract_data_from_zip(all_zips,2,"Simulated_data")
+  n_sample_per_group= get_num_samp_per_group(all_zips, zip_file_order, simulated_data_frame)
+  n_group1 = n_sample_per_group[1]
+  n_group2 = n_sample_per_group[2]
+  t_test_output = t.test(simulated_data_frame[,1:n_group1],simulated_data_frame[,(n_group1+1):ncol(simulated_data_frame)])
+  return(t_test_output)
 }
 
-
-
 ```
+
+
 
 ```{r setup, include=FALSE}
 # #Kolmogorov-Smirnov Tests - non-parametric
