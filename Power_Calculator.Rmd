@@ -1,6 +1,6 @@
 ---
 title: "Power_Calculator"
-author: "Nasimeh, Anastasia"
+author: "Nasimeh & Anastasia"
 date: "7/5/2022"
 output: html_document
 ---
@@ -34,9 +34,11 @@ library(CpGassoc)
 #print(temp)
 #a = import_data(temp)
 #simulations = apply(temp, import_data)
+```
 
+
+```{r setup, include=FALSE}
 unzip_file = function(item){
-#working_directory = getwd()
 
 temp = list.files(path=getwd(), pattern = paste0("SimMethyl_run_",item))
 list_of_txts<-unzip(temp,exdir = getwd()) #,list=TRUE
@@ -46,38 +48,45 @@ file3 = read.table(list_of_txts[3], header = TRUE)
 workflow = list(file1, file2, file3)
 return(workflow)
 }
+```
+
+```{r setup, include=FALSE}
+run1 <- unzip_file(1)
 
 ```
 
 ```{r setup, include=FALSE}
 Get_all_zip = function(n_zip){
 all_runs_output = list()
-for (i #1:n_zip)
-  i=1
+for (i in 1:n_zip){
   run = unzip_file(i)
   all_runs_output[[i]] = run
 }
 return(all_runs_output)
+}
+
+```
+
+
+```{r setup, include=FALSE}
+
+run2 <- Get_all_zip(2)
 
 ```
 
 ```{r setup, include=FALSE}
-preprocess_simulated_data = function(all_runs_output, zip_order){
-  
-simulated_data = all_runs_output[[zip_order]][[1]]
-parameters = all_runs_output[[zip_order]][[3]]
-healthy_proportion = parameters$Value[parameters$Parameter == "Healthy proportion"]
-n_healthy = ncol(simulated_data)*healthy_proportion
-healthy = simulated_data[,1:n_healthy]
-diseased = simulated_data[,(n_healthy+1):ncol(simulated_data)]
-
-colnames(simulated_data)[(1:n_healthy)] = "Group1"
-colnames(simulated_data)[(n_healthy+1):ncol(simulated_data)] = "Group2"
-colnames(simulated_data) = factor(colnames(simulated_data))
-
-return(preprocess_simulated_data)
+extract_data_from_zip = function(all_runs_zip, zip_order_num, file_name){
+file_name_to_extract = ifelse(file_name=="Simulated_data",1,ifelse(file_name=="truly_different_sites_indices",2,ifelse(file_name=="User_Parameters",3,warning("WRONG_file_name"))))
+extracted_data = all_runs_zip[[ zip_order_num]][[file_name_to_extract]]
+return(extracted_data)
 }
 
+#works only for a multiple zip files, in the case of single zip returns a matrix not a data frame
+```
+
+```{r setup, include=FALSE}
+
+Simulated_data <- extract_data_from_zip(run2,2,"Simulated_data")
 
 ```
 
@@ -88,22 +97,45 @@ calculate_means <- function (beta_values_matrix) {
   means <- na.omit(means) #add handling of NAs if values in the the vector are NAs
   return(means)
 }
-healthy_mean = calculate_means(healthy)
-diseased_mean = calculate_means(diseased)
-
-#groupnames
-
+#healthy_mean = calculate_means(healthy)
+#diseased_mean = calculate_means(diseased)
 
 ```
 
+```{r setup, include=FALSE}
+get_healthy_proportion = function(all_zips, zip_file){
+user_parameters = extract_data_from_zip(all_zips, zip_file, "User_Parameters")
+healthy_proportion = user_parameters$Value[user_parameters$Parameter == "Healthy proportion"]
+n_Group1 = ncol(Simulated_data)*healthy_proportion
+n_Group2 = ncol(Simulated_data)*1-healthy_proportion
+num_groups = c(n_Group1,n_Group2)
+return(num_groups)
+}
+
+```
+
+```{r setup, include=FALSE} 
+
+get_healthy_proportion(run2,1)
+
+```
+
+```{r setup, include=FALSE}
+
+local_t_test = function(Simulated_data){
+  for 
+} 
+
+ t_test_output = t.test(Simulated_data[,1:30],Simulated_data[, 30:ncol(Simulated_data)])
+```
 
 ```{r setup, include=FALSE}
 #T.Test  #parametric
 
-t_test = function(simulated_data){
-phenotype = as.data.frame(colnames(simulated_data))
+t_test = function(Simulated_data){
+phenotype = as.data.frame(colnames(Simulated_data))
 names(phenotype) = "Group"  
-t_test_output <- cpg.assoc(beta.val=simulated_data, indep = phenotype$Group, logit.transform = TRUE) #indep = A vector containing the variable to be tested for association #logit.transform = transforming B-values to M-values 
+t_test_output <- cpg.assoc(Simulated_data, indep = phenotype$Group, logit.transform = TRUE) #indep = A vector containing the variable to be tested for association #logit.transform = transforming B-values to M-values 
 t_test_Pvalue = t_test_output$results$P.value
 return(t_test_Pvalue)
 }
