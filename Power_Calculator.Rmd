@@ -7,11 +7,11 @@ output: html_document
 
 ```{r setup, include=FALSE}
 
-if (!requireNamespace("BiocManager", quietly = TRUE))
-install.packages("BiocManager")
-BiocManager::install(version = "3.15")
-BiocManager::install("limma")
-BiocManager::install()
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#install.packages("BiocManager")
+#BiocManager::install(version = "3.15")
+#BiocManager::install("limma")
+#BiocManager::install()
 
 library(limma)
 library(CpGassoc)
@@ -52,7 +52,8 @@ return(workflow)
 ```
 
 ```{r setup, include=FALSE}
-run1 <- unzip_file(2)
+run1 <- unzip_file(1)
+run2 <- unzip_file(2)
 
 ```
 
@@ -86,7 +87,7 @@ return(extracted_data)
 
 ```{r setup, include=FALSE}
 
-Simulated_data <- extract_data_from_zip(run2,2,"Simulated_data")
+Simulated_data <- extract_data_from_zip(all_zips,2,"Simulated_data")
 
 ```
 
@@ -103,7 +104,7 @@ Simulated_data <- extract_data_from_zip(run2,2,"Simulated_data")
 ```
 
 ```{r setup, include=FALSE}
-get_healthy_proportion = function(all_zips, zip_file_order, simulated_data_frame){
+get_num_samp_per_group = function(all_zips, zip_file_order, simulated_data_frame){
 user_parameters = extract_data_from_zip(all_zips, zip_file_order, "User_Parameters")
 healthy_proportion = user_parameters$Value[user_parameters$Parameter == "Healthy proportion"]
 n_Group1 = ncol(simulated_data_frame)*healthy_proportion
@@ -116,20 +117,20 @@ return(num_groups)
 
 ```{r setup, include=FALSE} 
 
-get_healthy_proportion(all_zips,2, Simulated_data)
+get_num_samp_per_group(all_zips,2, Simulated_data)
 
 ```
 
 ```{r setup, include=FALSE}
 
 local_t_test = function(all_zips,zip_file_order){
-silmulated_data_frame = extract_data_from_zip(all_zips,zip_file_order,"Simulated_data")
-n_samples_per_gr = get_num_samp_per_group(all_zips,zip_file_order,silmulated_data)
+simulated_data_frame = extract_data_from_zip(all_zips,zip_file_order,"Simulated_data")
+n_samples_per_gr = get_num_samp_per_group(all_zips,zip_file_order,simulated_data_frame)
 n_group1 = n_samples_per_gr[1]
 
 store_all_p_val= c()
-for(i in nrow(silmulated_data_frame)){
-t_test_output = t.test(silmulated_data_frame[i,1:n_group1],silmulated_data_frame[i,(n_group1+1):ncol(silmulated_data_frame)])
+for(i in 1:nrow(simulated_data_frame)){
+t_test_output = t.test(simulated_data_frame[i,1:n_group1],simulated_data_frame[i,(n_group1+1):ncol(simulated_data_frame)])
 p_value = t_test_output$p.value
 store_all_p_val[i] = p_value
 }
@@ -137,6 +138,7 @@ method = t_test_output$method
 all_p_values = as.data.frame(store_all_p_val)
 names(all_p_values) = method
 return(all_p_values)
+}  
 
 ```
 
@@ -147,16 +149,16 @@ return(all_p_values)
 #remember to use the input as M-values
 # the test is different from t-test as it compares distribution functions of the two groups as opposed to 
 # only mean values are compared in t-test.
-Ks_test = function(all_zips,zip_file_order){
-silmulated_data_frame = extract_data_from_zip(all_zips,zip_file_order,"Simulated_data")
-n_samples_per_gr = get_num_samp_per_group(all_zips,zip_file_order,silmulated_data)
+local_Ks_test = function(all_zips,zip_file_order){
+simulated_data_frame = extract_data_from_zip(all_zips,zip_file_order,"Simulated_data")
+n_samples_per_gr = get_num_samp_per_group(all_zips,zip_file_order,simulated_data_frame)
 n_group1 = n_samples_per_gr[1]
 
 store_all_p_val= c()
-for(i in nrow(silmulated_data_frame)){
-  gr1 = as.numeric(silmulated_data_frame[i,1:n_group1])
-  gr2 = as.numeric(silmulated_data_frame[i,(n_group1+1):ncol(silmulated_data_frame)])
-KS_test_output = ks.test(gr1,gr2,alternative = "two.sided")
+for(i in 1:nrow(simulated_data_frame)){
+  gr1 = as.numeric(simulated_data_frame[i,1:n_group1])
+  gr2 = as.numeric(simulated_data_frame[i,(n_group1+1):ncol(simulated_data_frame)])
+KS_test_output = ks.test(gr1,gr2,alternative = "two.sided", exact = TRUE)
 p_value = KS_test_output$p.value
 store_all_p_val[i] = p_value
 }
@@ -173,7 +175,7 @@ return(all_p_values)
 
 #Limma #bayesian based 
 
-limma_test = function(all_zips,zip_file_order){
+local_limma_test = function(all_zips,zip_file_order){
 # model.matrix(~ simulated_data$Group2) - by manually
 simulated_data_frame = extract_data_from_zip(all_zips,zip_file_order,"Simulated_data")
 n_samples_per_gr = get_num_samp_per_group(all_zips,zip_file_order,simulated_data_frame)
@@ -198,6 +200,26 @@ return(limma_Pvalues)
 
 
 ```{r setup, include=FALSE}
+run_all_test = function(all_zips, zip_file_order){
+t_test_ouput = local_t_test(all_zips, zip_file_order)
+ks_output = local_Ks_test(all_zips, zip_file_order)
+local_limma_output = local_limma_test(all_zips, zip_file_order)
+all_test_output = cbind(t_test_ouput,ks_output,local_limma_output)
+return(all_test_output)
+}
+```
+
+```{r setup, include=FALSE}
+num_zip_file = length(all_zips)
+#import data and create variable zip "all_zips"
+#call function run_all_test(all_zips, )
+#
+
+
+```
+
+
+```{r setup, include=FALSE}
 #Needs to be fixed after returning from simulation
 logit_transformation = function (Beta_matrix){
  Beta_matrix <- ifelse(as.matrix(Beta_matrix)>=1, 0.99, as.matrix(Beta_matrix))
@@ -208,10 +230,19 @@ logit_transformation = function (Beta_matrix){
 
 ```
 
-```{r setup, include=FALSE}
 
-```
 
 ```{r setup, include=FALSE}
 
 ```
+
+
+```{r setup, include=FALSE}
+
+```
+
+
+```{r setup, include=FALSE}
+
+```
+
