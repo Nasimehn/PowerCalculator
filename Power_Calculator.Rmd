@@ -122,14 +122,21 @@ get_healthy_proportion(all_zips,2, Simulated_data)
 
 ```{r setup, include=FALSE}
 
-local_t_test = function(all_zips, zip_file_order){
-  simulated_data_frame = extract_data_from_zip(all_zips,2,"Simulated_data")
-  n_sample_per_group= get_num_samp_per_group(all_zips, zip_file_order, simulated_data_frame)
-  n_group1 = n_sample_per_group[1]
-  n_group2 = n_sample_per_group[2]
-  t_test_output = t.test(simulated_data_frame[,1:n_group1],simulated_data_frame[,(n_group1+1):ncol(simulated_data_frame)])
-  return(t_test_output)
+local_t_test = function(all_zips,zip_file_order){
+silmulated_data_frame = extract_data_from_zip(all_zips,zip_file_order,"Simulated_data")
+n_samples_per_gr = get_num_samp_per_group(all_zips,zip_file_order,silmulated_data)
+n_group1 = n_samples_per_gr[1]
+
+store_all_p_val= c()
+for(i in nrow(silmulated_data_frame)){
+t_test_output = t.test(silmulated_data_frame[i,1:n_group1],silmulated_data_frame[i,(n_group1+1):ncol(silmulated_data_frame)])
+p_value = t_test_output$p.value
+store_all_p_val[i] = p_value
 }
+method = t_test_output$method
+all_p_values = as.data.frame(store_all_p_val)
+names(all_p_values) = method
+return(all_p_values)
 
 ```
 
@@ -137,34 +144,54 @@ local_t_test = function(all_zips, zip_file_order){
 
 ```{r setup, include=FALSE}
 # #Kolmogorov-Smirnov Tests - non-parametric
-#remember the measn for M-values
+#remember to use the input as M-values
+# the test is different from t-test as it compares distribution functions of the two groups as opposed to 
+# only mean values are compared in t-test.
+Ks_test = function(all_zips,zip_file_order){
+silmulated_data_frame = extract_data_from_zip(all_zips,zip_file_order,"Simulated_data")
+n_samples_per_gr = get_num_samp_per_group(all_zips,zip_file_order,silmulated_data)
+n_group1 = n_samples_per_gr[1]
 
-Ks_tes = function(Group1_mean, Group2_mean){
-ks_test_output = ks.test(healthy_mean, diseased_mean)
-return(ks_test_output)
+store_all_p_val= c()
+for(i in nrow(silmulated_data_frame)){
+  gr1 = as.numeric(silmulated_data_frame[i,1:n_group1])
+  gr2 = as.numeric(silmulated_data_frame[i,(n_group1+1):ncol(silmulated_data_frame)])
+KS_test_output = ks.test(gr1,gr2,alternative = "two.sided")
+p_value = KS_test_output$p.value
+store_all_p_val[i] = p_value
 }
-
+method = KS_test_output$method
+all_p_values = as.data.frame(store_all_p_val)
+names(all_p_values) = method
+return(all_p_values)
+}
 
 ```
 
 ```{r setup, include=FALSE}
 #Limma #bayesian based 
 
-limma_test = function(Beta_matrix){
-# model.matrix(~ simulated_data$Group2) - by manually
-Group1 <- ifelse(colnames(simulated_data)=="Group1", 1, 0)
-Group2 <- ifelse(colnames(simulated_data)=="Group2", 1, 0)
-design_matrix = as.data.frame(cbind(Group1,Group2)) 
+#Limma #bayesian based 
 
+limma_test = function(all_zips,zip_file_order){
+# model.matrix(~ simulated_data$Group2) - by manually
+simulated_data_frame = extract_data_from_zip(all_zips,zip_file_order,"Simulated_data")
+n_samples_per_gr = get_num_samp_per_group(all_zips,zip_file_order,simulated_data_frame)
+n_group1 = n_samples_per_gr[1]
+n_group2 = n_samples_per_gr[2]
+Group1 = c(rep(1,n_group1),rep(0,n_group2))
+Group2 = c(rep(0,n_group1),rep(1,n_group2))
+design_matrix = as.data.frame(cbind(Group1,Group2)) 
 contrast_matrix = makeContrasts(Diff = Group2 - Group1, levels = design_matrix)
 
 #test 3 - limma 
-fit1 <- lmFit(simulated_data, design_matrix)
+fit1 <- lmFit(simulated_data_frame, design_matrix)
 fit2 <- contrasts.fit(fit1, contrast_matrix)
 fit3 <- eBayes(fit2)
 limma_output = as.data.frame(fit3)
-limma_Pvalue = limma_output$p.value
-return(limma_Pvalue)
+limma_Pvalues = as.data.frame(limma_output$p.value)
+names(limma_Pvalues) = "limma"
+return(limma_Pvalues)
 }
 
 ```
