@@ -15,6 +15,7 @@ output: html_document
 
 library(limma)
 library(CpGassoc)
+library(caret)
 
 ```
 
@@ -76,9 +77,10 @@ all_zips <- Get_all_zip(2)
 ```
 
 ```{r setup, include=FALSE}
-extract_data_from_zip = function(all_runs_zip, zip_order_num, file_name){
+extract_data_from_zip = function(all_runs_zip_num, zip_order_num, file_name){
 file_name_to_extract = ifelse(file_name=="Simulated_data",1,ifelse(file_name=="truly_different_sites_indices",2,ifelse(file_name=="User_Parameters",3,warning("WRONG_file_name"))))
-extracted_data = all_runs_zip[[ zip_order_num]][[file_name_to_extract]]
+all_zip = Get_all_zip(all_runs_zip_num)
+extracted_data = all_zip [[ zip_order_num]][[file_name_to_extract]]
 return(extracted_data)
 }
 
@@ -207,6 +209,8 @@ local_limma_output = local_limma_test(all_zips, zip_file_order)
 all_test_output = cbind(t_test_ouput,ks_output,local_limma_output)
 return(all_test_output)
 }
+
+all_test_output =run_all_test(all_zips, 2)
 ```
 
 ```{r setup, include=FALSE}
@@ -231,18 +235,63 @@ logit_transformation = function (Beta_matrix){
 ```
 
 
+```{r setup, include=FALSE}
+getadjustPval = function(p_val_vector){
+  p_val_adjusted =p.adjust(p_val_vector, method = "BH")
+  return(p_val_adjusted)
+}
+
+#When you adjust the p-values are more insignificant (penalty) 
+
+p_val_adjust = apply(all_test_output,2, getadjustPval)
+      
+```
+
 
 ```{r setup, include=FALSE}
+create_predicted_vector = function(p_val_vector){
+  signif_threshold = 0.05
+  boolian_signif_p_val= ifelse (p_val_vector<signif_threshold,0,1)
+  boolian_signif_p_val = as.factor(boolian_signif_p_val)
+#levels(boolian_signif_p_val) = c(1,0)
+  return(boolian_signif_p_val)
+}
+```
+
+
+```{r setup, include=FALSE}
+create_expected_val_vector = function(p_val_df,all_runs_zip_num,zip_order_num){
+  indices_truly_different = extract_data_from_zip(all_runs_zip_num,zip_order_num,"truly_different_sites_indices")
+  indices_truly_different = indices_truly_different$V1
+  
+  indices_p_val_vector = seq(1, nrow(p_val_df), by=1)
+  boolian_truly_modif = as.integer(!indices_p_val_vector %in% indices_truly_different)
+  boolian_truly_modif = factor(boolian_truly_modif)
+  return(boolian_truly_modif)
+} 
+#create_expected_val_vector(all_test_output$`Welch Two Sample t-test` ,2,2)
+```
+
+```{r setup, include=FALSE}
+create_confusion_matrix = function(all_test_df, all_runs_zip_num, zip_order_num){
+  expected = create_expected_val_vector(all_test_df, all_runs_zip_num, zip_order_num)
+  confusion_matrix = list()
+  for (i in 1:ncol(all_test_df)){
+  predicted = create_predicted_vector(all_test_df[,i])
+  confusion_matrix[[i]] = confusionMatrix(data= predicted, reference=expected) 
+  } 
+  return(confusion_matrix)
+}
 
 ```
 
 
 ```{r setup, include=FALSE}
 
-```
 
+```
 
 ```{r setup, include=FALSE}
 
-```
 
+```
