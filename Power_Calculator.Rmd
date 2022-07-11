@@ -279,7 +279,8 @@ create_confusion_matrix = function(all_test_df, all_runs_zip_num, zip_order_num)
   for (i in 1:ncol(all_test_df)){
   predicted = create_predicted_vector(all_test_df[,i])
   confusion_matrix[[i]] = confusionMatrix(data= predicted, reference=expected) 
-  } 
+  }
+  names(confusion_matrix) = names(all_test_df)
   return(confusion_matrix)
 }
 
@@ -298,11 +299,23 @@ calc_empirical_marg_power = function(all_confusionMatrix_list){
   true_negtaive = as.numeric(names(extract_confTable)[4])
   marg_power_list[[i]] = true_positive/(true_positive + false_negative)
   }
+  names(marg_power_list) = names(all_confusionMatrix_list)
   return(marg_power_list)
 }
 ```
 
 ```{r setup, include=FALSE}
 
+```
+
+```{r setup, include=FALSE}
+
+```
+
+```{r setup, include=FALSE}
+
+```
+
+```{r setup, include=FALSE}
 
 ```
