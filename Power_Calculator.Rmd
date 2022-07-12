@@ -16,6 +16,7 @@ output: html_document
 library(limma)
 library(CpGassoc)
 library(caret)
+library(ggplot2)
 
 ```
 
@@ -289,7 +290,9 @@ create_confusion_matrix = function(all_test_df, all_runs_zip_num, zip_order_num)
 
 ```{r setup, inc=lude=FALSE}
 calc_empirical_marg_power = function(all_confusionMatrix_list){
-  marg_power_list = list()
+  #marg_power_list = list()
+  df_all_test = as.data.frame(matrix(data=NA, nrow=1,ncol=3))
+  names(df_all_test) = c("t_test","KS_test", "limma")
   for (i in 1:length(all_confusionMatrix_list)){
   confusion_matrix = all_confusionMatrix_list[[i]]
   extract_confTable= table(confusion_matrix$table)
@@ -297,15 +300,53 @@ calc_empirical_marg_power = function(all_confusionMatrix_list){
   true_positive = as.numeric(names(extract_confTable)[2])
   false_positive = as.numeric(names(extract_confTable)[3])
   true_negtaive = as.numeric(names(extract_confTable)[4])
-  marg_power_list[[i]] = true_positive/(true_positive + false_negative)
+  power_calc_val = true_positive/(true_positive + false_negative)
+  df_all_test[,i] = power_calc_val
   }
-  names(marg_power_list) = names(all_confusionMatrix_list)
-  return(marg_power_list)
+  return(df_all_test)
 }
 ```
 
-```{r setup, include=FALSE}
 
+
+```{r setup, include=FALSE}
+power_calc_multiple_runs = function(all_zips){
+  df_all_test = as.data.frame(matrix(data=NA, nrow=1,ncol=3))
+  names(df_all_test) = c("t_test","KS_test", "limma")
+  for (i in 1:all_zips){
+    All_test = run_all_test(all_zips, i)
+    confusion_matrix = create_confusion_matrix(All_test, all_zips, i)
+    calc_power_value = calc_empirical_marg_power(confusion_matrix)
+    df_all_test = rbind(df_all_test,  calc_power_value)
+  }
+  df_all_test=na.omit(df_all_test)
+  return(df_all_test)
+}
+
+```
+
+
+
+```{r setup, include=FALSE}
+a=power_calc_multiple_runs(2)
+
+```
+
+
+```{r setup, include=FALSE}
+#visualisation
+
+#Samples <- c(50,100,150)
+#Statistical_power <- power_val
+#df <- data.frame(Samples, Statistical_power)
+
+generate_visualisation = function(power_calc, all_zips){
+
+gg_plot = ggplot(df, aes(x=power_val$limma, y=)) +
+    geom_point()+
+  theme_minimal()
+
+}
 ```
 
 ```{r setup, include=FALSE}
