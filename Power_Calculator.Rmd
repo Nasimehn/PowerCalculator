@@ -57,6 +57,7 @@ return(workflow)
 run1 <- unzip_file(1)
 run2 <- unzip_file(2)
 
+saveRDS(data,"/Users/sima/Documents/forsklinje/testing.rds")
 ```
 
 ```{r setup, include=FALSE}
@@ -291,8 +292,10 @@ create_confusion_matrix = function(all_test_df, all_runs_zip_num, zip_order_num)
 ```{r setup, inc=lude=FALSE}
 calc_empirical_marg_power = function(all_confusionMatrix_list){
   #marg_power_list = list()
-  df_all_test = as.data.frame(matrix(data=NA, nrow=1,ncol=3))
-  names(df_all_test) = c("t_test","KS_test", "limma")
+  df_all_test = as.data.frame(matrix(data=NA, nrow=3,ncol=3))
+  names(df_all_test) = c("Power", "test", "ID")
+  df_all_test$test = c("t_test","KS_test", "limma")
+  
   for (i in 1:length(all_confusionMatrix_list)){
   confusion_matrix = all_confusionMatrix_list[[i]]
   extract_confTable= table(confusion_matrix$table)
@@ -301,7 +304,9 @@ calc_empirical_marg_power = function(all_confusionMatrix_list){
   false_positive = as.numeric(names(extract_confTable)[3])
   true_negtaive = as.numeric(names(extract_confTable)[4])
   power_calc_val = true_positive/(true_positive + false_negative)
-  df_all_test[,i] = power_calc_val
+  df_all_test$Power[i] = power_calc_val
+   ID = rep(i,3)
+    df_all_test$ID = ID
   }
   return(df_all_test)
 }
@@ -335,13 +340,16 @@ get_all_parameters = function(all_zips){
 
 temp_df = as.data.frame(matrix(data=NA, nrow=1,ncol=5))
 names(temp_df) = c("n_samples", "n_CpGs", "healthy_proportion", "effect_size", "n_modified_CpGs")
+ID = c()
 for (i in 1:all_zips){
+  ID[i] = i
     user_parameters = extract_data_from_zip(all_zips, i, "User_Parameters")
     user_parameters = t(user_parameters)
     user_parameters = user_parameters[-1,]
     temp_df = rbind(temp_df,  user_parameters)
 }
   temp_df=na.omit(temp_df)
+  temp_df$ID = ID
 return(temp_df)
 }
 
@@ -352,6 +360,7 @@ return(temp_df)
 combined_df = function(all_zips){
 power_calc_val = power_calc_multiple_runs(all_zips)
 parameters = get_all_parameters(all_zips)
+
 output_df = cbind(parameters,power_calc_val)
 return(output_df)
 }
@@ -366,17 +375,22 @@ return(output_df)
 #Statistical_power <- power_val
 #df <- data.frame(Samples, Statistical_power)
 
-generate_visualisation = function(power_calc, all_zips){
-
-gg_plot = ggplot(df, aes(x=power_val$limma, y=)) +
+generate_visualisation = function(all_zips){
+data = combined_df(all_zips)
+gg_plot = ggplot(data, aes(x=limma , y=n_samples)) +
     geom_point()+
   theme_minimal()
-
+return(gg_plot)
 }
 ```
 
 
 ```{r setup, include=FALSE}
+ex_data = data[1:3,]
+gg_plot = ggplot(ex_data, aes(x=limma , y=n_samples)) +
+    geom_point()+
+  theme_minimal()
+print(gg_plot)
 
 ```
 
