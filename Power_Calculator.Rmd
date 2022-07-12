@@ -325,10 +325,36 @@ power_calc_multiple_runs = function(all_zips){
 
 ```
 
+```{r setup, include=FALSE}
+a=power_calc_multiple_runs(2)
+
+```
+
+```{r setup, include=FALSE}
+get_all_parameters = function(all_zips){
+
+temp_df = as.data.frame(matrix(data=NA, nrow=1,ncol=5))
+names(temp_df) = c("n_samples", "n_CpGs", "healthy_proportion", "effect_size", "n_modified_CpGs")
+for (i in 1:all_zips){
+    user_parameters = extract_data_from_zip(all_zips, i, "User_Parameters")
+    user_parameters = t(user_parameters)
+    user_parameters = user_parameters[-1,]
+    temp_df = rbind(temp_df,  user_parameters)
+}
+  temp_df=na.omit(temp_df)
+return(temp_df)
+}
+
+```
 
 
 ```{r setup, include=FALSE}
-a=power_calc_multiple_runs(2)
+combined_df = function(all_zips){
+power_calc_val = power_calc_multiple_runs(all_zips)
+parameters = get_all_parameters(all_zips)
+output_df = cbind(parameters,power_calc_val)
+return(output_df)
+}
 
 ```
 
@@ -349,9 +375,6 @@ gg_plot = ggplot(df, aes(x=power_val$limma, y=)) +
 }
 ```
 
-```{r setup, include=FALSE}
-
-```
 
 ```{r setup, include=FALSE}
 
