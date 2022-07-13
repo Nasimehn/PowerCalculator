@@ -415,20 +415,28 @@ heat_map_t_test = function(){
 data_slected_test %>% ggplot(aes(x= n_samples, y = effect_size, fill = Power)) +
  geom_tile(color = "white", lwd=1) +
   geom_text(aes(label = Power), color = "white", size = 5) 
-  #coord_fixed()
 }
 
 ```
 
 ```{r setup, include=FALSE}
-
-
-
+heat_map = function(n_zip,x_parameter_string,y_parameter_string,color_string,test_string){
+  all_zips = merge_data(n_zip)
+  columns_selected = all_zips[,names(all_zips) %in% c("test",color_string,x_parameter_string,y_parameter_string)]
+  columns_selected[,1] = as.numeric(format(columns_selected[,1], digits = 2))
+  columns_selected = columns_selected[columns_selected[,2] == test_string,]
+fig = columns_selected %>% ggplot(aes(x = columns_selected[,3], y = columns_selected[,4], fill = columns_selected[,1])) +
+ geom_tile(color = "white", lwd=1) +
+  geom_text(aes(label = columns_selected[,1]), color = "white", size = 5) 
+return(fig)
+}
 ```
 
 ```{r setup, include=FALSE}
 
-
+data_slected_test %>% ggplot(aes(x= data_slected_test[,3], y = data_slected_test[,4], fill = data_slected_test[,2])) +
+ geom_tile(color = "white", lwd=1) +
+  geom_text(aes(label = data_slected_test[,2]), color = "white", size = 5) 
 
 
 ```
