@@ -405,11 +405,15 @@ return(gg_plot)
 
 
 ```{r setup, include=FALSE}
-ex_data = data[1:3,]
-gg_plot = ggplot(ex_data, aes(x=limma , y=n_samples)) +
-    geom_point()+
-  theme_minimal()
-print(gg_plot)
+
+
+```
+
+```{r setup, include=FALSE}
+
+```
+
+```{r setup, include=FALSE}
 
 ```
 
