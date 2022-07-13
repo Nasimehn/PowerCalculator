@@ -14,10 +14,9 @@ output: html_document
 #BiocManager::install()
 
 library(limma)
-library(CpGassoc)
 library(caret)
 library(ggplot2)
-library(reshape)
+#library(reshape)
 
 ```
 
@@ -44,7 +43,8 @@ library(reshape)
 ```{r setup, include=FALSE}
 unzip_file = function(item){
 
-temp = list.files(path=getwd(), pattern = paste0("SimMethyl_run_",item))
+#temp = list.files(path=getwd(), pattern = paste0("SimMethyl_run_",item))
+temp = paste0(getwd(),"/SimMethyl_run_",item,".zip")
 list_of_txts<-unzip(temp,exdir = getwd()) #,list=TRUE
 file1 = read.table(list_of_txts[1])
 file2 = read.table(list_of_txts[2])
@@ -52,16 +52,11 @@ file3 = read.table(list_of_txts[3], header = TRUE)
 workflow = list(file1, file2, file3)
 return(workflow)
 }
+
 ```
 
 ```{r setup, include=FALSE}
-run1 <- unzip_file(1)
-run2 <- unzip_file(2)
 
-saveRDS(data,"/Users/sima/Documents/forsklinje/testing.rds")
-```
-
-```{r setup, include=FALSE}
 Get_all_zip = function(n_zip){
 all_runs_output = list()
 for (i in 1:n_zip){
@@ -383,7 +378,7 @@ return(output_df)
 #visualisation
 
 
-plot_results_for_paramter = function(data,parameter_modified_string){ # input for parametere_modified should be a string
+plot_line = function(data,parameter_modified_string){ # input for parametere_modified should be a string
     constant_parameters = data[,!names(data) %in% c(parameter_modified_string,"test","Power", "ID")]
 const_param_1 = paste(names(constant_parameters)[1], constant_parameters[1,1], sep = " ")
 const_param_2 = paste(names(constant_parameters)[2], constant_parameters[1,2], sep = " ") 
@@ -411,19 +406,30 @@ plot_results_for_paramter(data, "n_samples", "Power", "test")
 
 
 ```{r setup, include=FALSE}
-data
-for (col in 1:ncol(data)){
-  for (val in 1:)
-  if (data[,col])
+heat_map_t_test = function(){
+  data_zip15 = merge_data(15)
   
+  data_zip_selected = subset(data_zip15, select = c(test,Power,n_samples,effect_size))
+  data_zip_selected$Power = as.numeric(format(data_zip_selected$Power, digits = 2))
+  data_slected_t_test = data_zip_selected[data_zip_selected$test == "t_test",]
+data_slected_test %>% ggplot(aes(x= n_samples, y = effect_size, fill = Power)) +
+ geom_tile(color = "white", lwd=1) +
+  geom_text(aes(label = Power), color = "white", size = 5) 
+  #coord_fixed()
 }
-```
-
-```{r setup, include=FALSE}
 
 ```
 
 ```{r setup, include=FALSE}
+
+
+
+```
+
+```{r setup, include=FALSE}
+
+
+
 
 ```
 
