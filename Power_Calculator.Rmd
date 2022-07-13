@@ -381,10 +381,24 @@ return(output_df)
 #df <- data.frame(Samples, Statistical_power)
 
 generate_visualisation = function(all_zips){
-data = combined_df(all_zips)
-gg_plot = ggplot(data, aes(x=limma , y=n_samples)) +
-    geom_point()+
-  theme_minimal()
+#data = merge_data(all_zips)
+data = data
+as.numeric(data$n_samples)
+gg_plot = 
+  n_CpGs = 
+  #y =  4/5*max(as.numeric(data$n_samples))
+  #x = max(data$Power)
+  ggplot(data, aes(x=Power , y=as.numeric(n_samples), color = test)) +
+    geom_line()+
+    geom_point(aes(shape=test))+
+  labs(x="Power",y="Samples") +
+  #xlab("Power") +
+  #ylab("Samples") +
+  theme_minimal() +
+  theme(plot.margin = unit(c(0,1,0,0),"lines")) + #legend.position = c(x, y)) +
+  coord_cartesian(clip = "off") +
+  annotate(geom= "text", x = 1, y = 120, label= "effect size ")
+
 return(gg_plot)
 }
 ```
