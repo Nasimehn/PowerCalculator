@@ -17,6 +17,7 @@ library(limma)
 library(CpGassoc)
 library(caret)
 library(ggplot2)
+library(reshape)
 
 ```
 
@@ -204,6 +205,7 @@ return(limma_Pvalues)
 
 
 ```{r setup, include=FALSE}
+#test-statistics for all Cpgs for each test
 run_all_test = function(all_zips, zip_file_order){
 t_test_ouput = local_t_test(all_zips, zip_file_order)
 ks_output = local_Ks_test(all_zips, zip_file_order)
@@ -292,8 +294,8 @@ create_confusion_matrix = function(all_test_df, all_runs_zip_num, zip_order_num)
 ```{r setup, inc=lude=FALSE}
 calc_empirical_marg_power = function(all_confusionMatrix_list){
   #marg_power_list = list()
-  df_all_test = as.data.frame(matrix(data=NA, nrow=3,ncol=3))
-  names(df_all_test) = c("Power", "test", "ID")
+  df_all_test = as.data.frame(matrix(data=NA, nrow=3,ncol=2))
+  names(df_all_test) = c("Power", "test")
   df_all_test$test = c("t_test","KS_test", "limma")
   
   for (i in 1:length(all_confusionMatrix_list)){
@@ -305,8 +307,7 @@ calc_empirical_marg_power = function(all_confusionMatrix_list){
   true_negtaive = as.numeric(names(extract_confTable)[4])
   power_calc_val = true_positive/(true_positive + false_negative)
   df_all_test$Power[i] = power_calc_val
-   ID = rep(i,3)
-    df_all_test$ID = ID
+
   }
   return(df_all_test)
 }
@@ -316,15 +317,20 @@ calc_empirical_marg_power = function(all_confusionMatrix_list){
 
 ```{r setup, include=FALSE}
 power_calc_multiple_runs = function(all_zips){
-  df_all_test = as.data.frame(matrix(data=NA, nrow=1,ncol=3))
-  names(df_all_test) = c("t_test","KS_test", "limma")
+  df_all_test = as.data.frame(matrix(data=NA, nrow=3,ncol=3))
+  names(df_all_test) = c("Power", "test", "ID")
+  #df_all_test$test = c("t_test","KS_test", "limma")
+  #ID = c()
   for (i in 1:all_zips){
     All_test = run_all_test(all_zips, i)
     confusion_matrix = create_confusion_matrix(All_test, all_zips, i)
     calc_power_value = calc_empirical_marg_power(confusion_matrix)
+    calc_power_value$ID = rep(i,3) #adding new column with IDs (zip ID)
     df_all_test = rbind(df_all_test,  calc_power_value)
+   # df_all_test$ID[i] = i
   }
   df_all_test=na.omit(df_all_test)
+  #df_all_test = rbind(df_all_test,  user_parameters)
   return(df_all_test)
 }
 
@@ -357,11 +363,10 @@ return(temp_df)
 
 
 ```{r setup, include=FALSE}
-combined_df = function(all_zips){
+merge_data = function(all_zips){
 power_calc_val = power_calc_multiple_runs(all_zips)
 parameters = get_all_parameters(all_zips)
-
-output_df = cbind(parameters,power_calc_val)
+output_df = merge(power_calc_val, parameters, by="ID")
 return(output_df)
 }
 
