@@ -6,39 +6,11 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-
-#if (!requireNamespace("BiocManager", quietly = TRUE))
-#install.packages("BiocManager")
-#BiocManager::install(version = "3.15")
-#BiocManager::install("limma")
-#BiocManager::install()
-
 library(limma)
 library(caret)
 library(ggplot2)
 #library(reshape)
-
 ```
-
-
-```{r setup, include=FALSE}
-#unzipping 
-
-#import_data = function(zip_file){
-#user_path = "/Users/sima/Documents/summer project/datsets/"
-#print(user_path)
-#unziped_files = unzip(zip_file, exdir = getwd())
-#print(unziped_files)
-#print(zip_file)
-#return(unziped_files)
-#}
-#user_path = "/Users/sima/Documents/summer project/datsets/"
-#temp = list.files(path=getwd(), pattern = "*.zip")
-#print(temp)
-#a = import_data(temp)
-#simulations = apply(temp, import_data)
-```
-
 
 ```{r setup, include=FALSE}
 unzip_file = function(item){
