@@ -399,24 +399,30 @@ data_slected_test %>% ggplot(aes(x= n_samples, y = effect_size, fill = Power)) +
 ```{r setup, include=FALSE}
 heat_map = function(n_zip,x_parameter_string,y_parameter_string,color_string,test_string){
   all_zips = merge_data(n_zip)
-  columns_selected = all_zips[,names(all_zips) %in% c("test",color_string,x_parameter_string,y_parameter_string)]
-  columns_selected[,1] = as.numeric(format(columns_selected[,1], digits = 2))
-  columns_selected = columns_selected[columns_selected[,2] == test_string,]
-fig = columns_selected %>% ggplot(aes(x = columns_selected[,3], y = columns_selected[,4], fill = columns_selected[,1])) +
- geom_tile(color = "white", lwd=1) +
-  geom_text(aes(label = columns_selected[,1]), color = "white", size = 5) 
-return(fig)
+  selected_parameters_df = all_zips[,names(all_zips) %in% c("test",color_string,x_parameter_string,y_parameter_string)]
+y_parameter = y_parameter_string
+x_parameter = x_parameter_string
+
+column_names = names(selected_parameters_df)
+column_names = gsub(y_parameter,"y_parameter",column_names)
+column_names = gsub(x_parameter,"x_parameter",column_names)
+names(selected_parameters_df) = column_names
+  
+  
+selected_parameters_df$Power = as.numeric(format(selected_parameters_df$Power, digits = 2))
+selected_parameters_df = selected_parameters_df[selected_parameters_df$test == test_string,]
+fig = ggplot(selected_parameters_df, aes(x = x_parameter, y = y_parameter, fill = Power)) +
+  geom_tile(color = "white", lwd=1) +
+  labs(x=x_parameter,y=y_parameter) +
+  geom_text(aes(label = Power), color = "white", size = 5) 
+
+png(paste0("HeatMap_",y_parameter,"_vs_",x_parameter,"_colorfill_power",test_string,".png"))
+print(fig)
+dev.off()
+}
 }
 ```
 
-```{r setup, include=FALSE}
-
-data_slected_test %>% ggplot(aes(x= data_slected_test[,3], y = data_slected_test[,4], fill = data_slected_test[,2])) +
- geom_tile(color = "white", lwd=1) +
-  geom_text(aes(label = data_slected_test[,2]), color = "white", size = 5) 
-
-
-```
 
 ```{r setup, include=FALSE}
 
