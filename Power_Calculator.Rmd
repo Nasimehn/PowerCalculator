@@ -13,22 +13,20 @@ library(ggplot2)
 ```
 
 ```{r setup, include=FALSE}
-unzip_file = function(item){
+unzip_file = function(zip_order){
 
 #temp = list.files(path=getwd(), pattern = paste0("SimMethyl_run_",item))
-temp = paste0(getwd(),"/SimMethyl_run_",item,".zip")
+temp = paste0(getwd(),"/SimMethyl_run_",zip_order,".zip")
 list_of_txts<-unzip(temp,exdir = getwd()) #,list=TRUE
 file1 = read.table(list_of_txts[1])
 file2 = read.table(list_of_txts[2])
 file3 = read.table(list_of_txts[3], header = TRUE)
-workflow = list(file1, file2, file3)
-return(workflow)
+list_workflow = list(file1, file2, file3)
+return(list_workflow)
 }
-
 ```
 
 ```{r setup, include=FALSE}
-
 Get_all_zip = function(n_zip){
 all_runs_output = list()
 for (i in 1:n_zip){
@@ -39,12 +37,6 @@ return(all_runs_output)
 }
 ```
 
-
-```{r setup, include=FALSE}
-
-all_zips <- Get_all_zip(2)
-
-```
 
 ```{r setup, include=FALSE}
 extract_data_from_zip = function(all_runs_zip_num, zip_order_num, file_name){
@@ -64,18 +56,6 @@ Simulated_data <- extract_data_from_zip(all_zips,2,"Simulated_data")
 ```
 
 ```{r setup, include=FALSE}
-#calculate_means <- function (beta_values_matrix) {
-  # check stop if not() to make sure there are no non numeric values.
-  #means <- rowMeans(beta_values_matrix, na.rm=TRUE)# if all values within a row are NA produces NaN
-  #means <- na.omit(means) #add handling of NAs if values in the the vector are NAs
-  #return(means)
-#}
-#healthy_mean = calculate_means(healthy)
-#diseased_mean = calculate_means(diseased)
-
-```
-
-```{r setup, include=FALSE}
 get_num_samp_per_group = function(all_zips, zip_file_order, simulated_data_frame){
 user_parameters = extract_data_from_zip(all_zips, zip_file_order, "User_Parameters")
 healthy_proportion = user_parameters$Value[user_parameters$Parameter == "Healthy proportion"]
@@ -87,16 +67,12 @@ return(num_groups)
 
 ```
 
-```{r setup, include=FALSE} 
-
-get_num_samp_per_group(all_zips,2, Simulated_data)
-
-```
 
 ```{r setup, include=FALSE}
 
 local_t_test = function(all_zips,zip_file_order){
 simulated_data_frame = extract_data_from_zip(all_zips,zip_file_order,"Simulated_data")
+simulated_data_frame = logit_transformation(simulated_data_frame)
 n_samples_per_gr = get_num_samp_per_group(all_zips,zip_file_order,simulated_data_frame)
 n_group1 = n_samples_per_gr[1]
 
@@ -115,7 +91,6 @@ return(all_p_values)
 ```
 
 
-
 ```{r setup, include=FALSE}
 # #Kolmogorov-Smirnov Tests - non-parametric
 #remember to use the input as M-values
@@ -123,6 +98,7 @@ return(all_p_values)
 # only mean values are compared in t-test.
 local_Ks_test = function(all_zips,zip_file_order){
 simulated_data_frame = extract_data_from_zip(all_zips,zip_file_order,"Simulated_data")
+simulated_data_frame = logit_transformation(simulated_data_frame)
 n_samples_per_gr = get_num_samp_per_group(all_zips,zip_file_order,simulated_data_frame)
 n_group1 = n_samples_per_gr[1]
 
@@ -145,11 +121,10 @@ return(all_p_values)
 ```{r setup, include=FALSE}
 #Limma #bayesian based 
 
-#Limma #bayesian based 
-
 local_limma_test = function(all_zips,zip_file_order){
 # model.matrix(~ simulated_data$Group2) - by manually
 simulated_data_frame = extract_data_from_zip(all_zips,zip_file_order,"Simulated_data")
+simulated_data_frame = logit_transformation(simulated_data_frame)
 n_samples_per_gr = get_num_samp_per_group(all_zips,zip_file_order,simulated_data_frame)
 n_group1 = n_samples_per_gr[1]
 n_group2 = n_samples_per_gr[2]
@@ -158,7 +133,6 @@ Group2 = c(rep(0,n_group1),rep(1,n_group2))
 design_matrix = as.data.frame(cbind(Group1,Group2)) 
 contrast_matrix = makeContrasts(Diff = Group2 - Group1, levels = design_matrix)
 
-#test 3 - limma 
 fit1 <- lmFit(simulated_data_frame, design_matrix)
 fit2 <- contrasts.fit(fit1, contrast_matrix)
 fit3 <- eBayes(fit2)
@@ -172,50 +146,37 @@ return(limma_Pvalues)
 
 
 ```{r setup, include=FALSE}
-#test-statistics for all Cpgs for each test
+#test-statistics for all CpGs for each test
 run_all_test = function(all_zips, zip_file_order){
 t_test_ouput = local_t_test(all_zips, zip_file_order)
 ks_output = local_Ks_test(all_zips, zip_file_order)
 local_limma_output = local_limma_test(all_zips, zip_file_order)
 all_test_output = cbind(t_test_ouput,ks_output,local_limma_output)
-return(all_test_output)
+all_test_p_adjusted = apply(all_test_output,2, getadjustPval)
+return(all_test_p_adjusted)
 }
 
-all_test_output =run_all_test(all_zips, 2)
-```
-
-```{r setup, include=FALSE}
-num_zip_file = length(all_zips)
-#import data and create variable zip "all_zips"
-#call function run_all_test(all_zips, )
-#
-
-
 ```
 
 
 ```{r setup, include=FALSE}
-#Needs to be fixed after returning from simulation
 logit_transformation = function (Beta_matrix){
- Beta_matrix <- ifelse(as.matrix(Beta_matrix)=1, 0.99, as.matrix(Beta_matrix))
- Beta_matrix <- ifelse(as.matrix(Beta_matrix)=0, 0.00000000000000001, as.matrix(Beta_matrix))
+ Beta_matrix <- ifelse(as.matrix(Beta_matrix)>=1, 0.99, as.matrix(Beta_matrix))
+ Beta_matrix <- ifelse(as.matrix(Beta_matrix)<=0, 0.00000000000000001, as.matrix(Beta_matrix))
   beta_transform = log2(Beta_matrix/(1-Beta_matrix))
-  resturn(logit_transformation)
+  return(beta_transform)
 }
 
 ```
 
 
 ```{r setup, include=FALSE}
-getadjustPval = function(p_val_vector){
-  p_val_adjusted =p.adjust(p_val_vector, method = "BH")
-  return(p_val_adjusted)
-}
-
 #When you adjust the p-values are more insignificant (penalty) 
 
-p_val_adjust = apply(all_test_output,2, getadjustPval)
-      
+getadjustPval = function(p_val_vector){
+  p_val_adjusted = p.adjust(p_val_vector, method = "BH")
+  return(p_val_adjusted)
+}
 ```
 
 
@@ -260,7 +221,6 @@ create_confusion_matrix = function(all_test_df, all_runs_zip_num, zip_order_num)
 
 ```{r setup, inc=lude=FALSE}
 calc_empirical_marg_power = function(all_confusionMatrix_list){
-  #marg_power_list = list()
   df_all_test = as.data.frame(matrix(data=NA, nrow=3,ncol=2))
   names(df_all_test) = c("Power", "test")
   df_all_test$test = c("t_test","KS_test", "limma")
@@ -281,32 +241,23 @@ calc_empirical_marg_power = function(all_confusionMatrix_list){
 ```
 
 
-
 ```{r setup, include=FALSE}
 power_calc_multiple_runs = function(all_zips){
   df_all_test = as.data.frame(matrix(data=NA, nrow=3,ncol=3))
   names(df_all_test) = c("Power", "test", "ID")
-  #df_all_test$test = c("t_test","KS_test", "limma")
-  #ID = c()
   for (i in 1:all_zips){
     All_test = run_all_test(all_zips, i)
     confusion_matrix = create_confusion_matrix(All_test, all_zips, i)
     calc_power_value = calc_empirical_marg_power(confusion_matrix)
     calc_power_value$ID = rep(i,3) #adding new column with IDs (zip ID)
     df_all_test = rbind(df_all_test,  calc_power_value)
-   # df_all_test$ID[i] = i
   }
   df_all_test=na.omit(df_all_test)
-  #df_all_test = rbind(df_all_test,  user_parameters)
   return(df_all_test)
 }
 
 ```
 
-```{r setup, include=FALSE}
-a=power_calc_multiple_runs(2)
-
-```
 
 ```{r setup, include=FALSE}
 get_all_parameters = function(all_zips){
@@ -328,7 +279,6 @@ for (i in 1:all_zips){
   temp_df$healthy_proportion = as.numeric(temp_df$healthy_proportion)
   temp_df$effect_size = as.numeric(temp_df$effect_size)
   temp_df$n_modified_CpGs = as.numeric(temp_df$n_modified_CpGs)
-
   return(temp_df)
 }
 
@@ -381,25 +331,9 @@ dev.off()
 
 ```
 
-
 ```{r setup, include=FALSE}
-heat_map_t_test = function(){
-  data_zip15 = merge_data(15)
-  
-  data_zip_selected = subset(data_zip15, select = c(test,Power,n_samples,effect_size))
-  data_zip_selected$Power = as.numeric(format(data_zip_selected$Power, digits = 2))
-  data_slected_t_test = data_zip_selected[data_zip_selected$test == "t_test",]
-data_slected_test %>% ggplot(aes(x= n_samples, y = effect_size, fill = Power)) +
- geom_tile(color = "white", lwd=1) +
-  geom_text(aes(label = Power), color = "white", size = 5) 
-}
-
-```
-
-```{r setup, include=FALSE}
-heat_map = function(n_zip,x_parameter_string,y_parameter_string,color_string,test_string){
-  all_zips = merge_data(n_zip)
-  selected_parameters_df = all_zips[,names(all_zips) %in% c("test",color_string,x_parameter_string,y_parameter_string)]
+heat_map = function(data_df,x_parameter_string,y_parameter_string,color_string,test_string){
+selected_parameters_df = data_df[,names(data_df) %in% c("test",color_string,x_parameter_string,y_parameter_string)]
 y_parameter = y_parameter_string
 x_parameter = x_parameter_string
 
@@ -407,7 +341,6 @@ column_names = names(selected_parameters_df)
 column_names = gsub(y_parameter,"y_parameter",column_names)
 column_names = gsub(x_parameter,"x_parameter",column_names)
 names(selected_parameters_df) = column_names
-  
   
 selected_parameters_df$Power = as.numeric(format(selected_parameters_df$Power, digits = 2))
 selected_parameters_df = selected_parameters_df[selected_parameters_df$test == test_string,]
@@ -420,10 +353,19 @@ png(paste0("HeatMap_",y_parameter,"_vs_",x_parameter,"_colorfill_power",test_str
 print(fig)
 dev.off()
 }
-}
+
 ```
 
 
 ```{r setup, include=FALSE}
-
+PowerCalc = function(num_zips,y_parameter_string,x_parameter_string,color_string,test_vector_string){
+  all_test_all_zips = merge_data(num_zips)
+  write.table(all_test_all_zips, "PowerCalc_tests_results.txt", col.names = TRUE)
+  Mval_all_test = logit_transformation()
+  plot_line(Mval_all_test,y_parameter_string, x_parameter_string)
+  plot_line(all_test_all_zips,y_parameter_string, x_parameter_string)
+  for (test in 1:length(test_vector_string)){
+    heat_map(all_test_all_zips,x_parameter_string, y_parameter_string, color_string, test_vector_string[test])
+  }
+}
 ```
