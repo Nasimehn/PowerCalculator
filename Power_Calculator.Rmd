@@ -5,6 +5,8 @@ date: "7/5/2022"
 output: html_document
 ---
 
+
+
 ```{r setup, include=FALSE}
 library(limma)
 library(caret)
@@ -49,11 +51,6 @@ return(extracted_data)
 #works only for a multiple zip files, in the case of single zip returns a matrix not a data frame
 ```
 
-```{r setup, include=FALSE}
-
-#Simulated_data <- extract_data_from_zip(all_zips,2,"Simulated_data")
-
-```
 
 ```{r setup, include=FALSE}
 get_num_samp_per_group = function(all_zips, zip_file_order, simulated_data_frame){
@@ -171,12 +168,6 @@ multitest_p_adjust = function(all_test_df, p_adjust_method_string){
 return(store_p_adjust)
 }
 
-```
-
-```{r setup, include=FALSE}
-all_test_output = run_all_test(2,2)
-
-p_adjusted = multitest_p_adjest(all_test_output,"BH")
 ```
 
 
@@ -371,7 +362,7 @@ fig = ggplot(selected_parameters_df, aes(x = x_parameter, y = y_parameter, fill 
   labs(x=x_parameter,y=y_parameter) +
   geom_text(aes(label = Power), color = "white", size = 5) 
 
-png(paste0("HeatMap_",y_parameter,"_vs_",x_parameter,"_colorfill_power",test_string,"_",p_adjust_method_string,"_",beta_or_M_string,".png"))
+png(paste0("HeatMap_",y_parameter,"_vs_",x_parameter,"_colorfill_Power",test_string,"_",p_adjust_method_string,"_",beta_or_M_string,".png"))
 print(fig)
 dev.off()
 }
@@ -389,7 +380,7 @@ PowerCalc = function(num_zips,p_adjust_method_string,beta_or_M_string,y_paramete
   plot_line(all_test_all_zips,y_parameter_string, x_parameter_string,p_adjust_method_string,beta_or_M_string)
   
   for (test in 1:length(test_vector_string)){
-    heat_map(all_test_all_zips,x_parameter_string, y_parameter_string, color_string, test_vector_string[test],p_adjust_method_string,beta_or_M_string)
+    heat_map(all_test_all_zips,x_parameter_string, y_parameter_string, test_vector_string[test],p_adjust_method_string,beta_or_M_string)
   }
 }
 ```
