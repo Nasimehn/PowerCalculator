@@ -70,11 +70,7 @@ return(num_groups)
 
 ```{r setup, include=FALSE}
 
-local_t_test = function(all_zips,zip_file_order){
-simulated_data_frame = extract_data_from_zip(all_zips,zip_file_order,"Simulated_data")
-simulated_data_frame = logit_transformation(simulated_data_frame)
-n_samples_per_gr = get_num_samp_per_group(all_zips,zip_file_order,simulated_data_frame)
-n_group1 = n_samples_per_gr[1]
+local_t_test = function(simulated_data_frame,n_group1){
 
 store_all_p_val= c()
 for(i in 1:nrow(simulated_data_frame)){
@@ -96,11 +92,7 @@ return(all_p_values)
 #remember to use the input as M-values
 # the test is different from t-test as it compares distribution functions of the two groups as opposed to 
 # only mean values are compared in t-test.
-local_Ks_test = function(all_zips,zip_file_order){
-simulated_data_frame = extract_data_from_zip(all_zips,zip_file_order,"Simulated_data")
-simulated_data_frame = logit_transformation(simulated_data_frame)
-n_samples_per_gr = get_num_samp_per_group(all_zips,zip_file_order,simulated_data_frame)
-n_group1 = n_samples_per_gr[1]
+local_Ks_test = function(simulated_data_frame,n_group1){
 
 store_all_p_val= c()
 for(i in 1:nrow(simulated_data_frame)){
@@ -121,13 +113,8 @@ return(all_p_values)
 ```{r setup, include=FALSE}
 #Limma #bayesian based 
 
-local_limma_test = function(all_zips,zip_file_order){
-# model.matrix(~ simulated_data$Group2) - by manually
-simulated_data_frame = extract_data_from_zip(all_zips,zip_file_order,"Simulated_data")
-simulated_data_frame = logit_transformation(simulated_data_frame)
-n_samples_per_gr = get_num_samp_per_group(all_zips,zip_file_order,simulated_data_frame)
-n_group1 = n_samples_per_gr[1]
-n_group2 = n_samples_per_gr[2]
+local_limma_test = function(simulated_data_frame,n_group1,n_group2){
+
 Group1 = c(rep(1,n_group1),rep(0,n_group2))
 Group2 = c(rep(0,n_group1),rep(1,n_group2))
 design_matrix = as.data.frame(cbind(Group1,Group2)) 
@@ -147,10 +134,26 @@ return(limma_Pvalues)
 
 ```{r setup, include=FALSE}
 #test-statistics for all CpGs for each test
-run_all_test = function(all_zips, zip_file_order){
-t_test_ouput = local_t_test(all_zips, zip_file_order)
-ks_output = local_Ks_test(all_zips, zip_file_order)
-local_limma_output = local_limma_test(all_zips, zip_file_order)
+run_all_test = function(all_zips, zip_file_order,beta_or_M_string){
+simulated_data_frame = extract_data_from_zip(all_zips,zip_file_order,"Simulated_data")
+  
+  if(beta_or_M_string == "M"){
+    simulated_data_frame = as.data.frame(logit_transformation(simulated_data_frame))
+  } 
+  else if(beta_or_M_string == "beta"){
+    simulated_data_frame = simulated_data_frame
+  } 
+  else{
+    warning("invalid input for beta_or_M_string, use M or beta")
+  }
+
+n_samples_per_gr = get_num_samp_per_group(all_zips,zip_file_order,simulated_data_frame)
+n_group1 = n_samples_per_gr[1]
+n_group2 = n_samples_per_gr[2]
+
+t_test_ouput = local_t_test(simulated_data_frame, n_group1)
+ks_output = local_Ks_test(simulated_data_frame,n_group1)
+local_limma_output = local_limma_test(simulated_data_frame,n_group1,n_group2)
 all_test_output = cbind(t_test_ouput,ks_output,local_limma_output)
 return(all_test_output)
 }
@@ -178,10 +181,10 @@ p_adjusted = multitest_p_adjest(all_test_output,"BH")
 
 
 ```{r setup, include=FALSE}
-logit_transformation = function (Beta_matrix){
- Beta_matrix <- ifelse(as.matrix(Beta_matrix)>=1, 0.99, as.matrix(Beta_matrix))
- Beta_matrix <- ifelse(as.matrix(Beta_matrix)<=0, 0.00000000000000001, as.matrix(Beta_matrix))
-  beta_transform = log2(Beta_matrix/(1-Beta_matrix))
+logit_transformation = function (beta_matrix){
+ beta_matrix <- ifelse(as.matrix(beta_matrix)>=1, 0.99, as.matrix(beta_matrix))
+ beta_matrix <- ifelse(as.matrix(beta_matrix)<=0, 0.00000000000000001, as.matrix(beta_matrix))
+  beta_transform = log2(beta_matrix/(1-beta_matrix))
   return(beta_transform)
 }
 
@@ -260,11 +263,11 @@ calc_empirical_marg_power = function(all_confusionMatrix_list){
 
 
 ```{r setup, include=FALSE}
-power_calc_multiple_runs = function(all_zips, p_adjust_method_string){
+power_calc_multiple_runs = function(all_zips, p_adjust_method_string, beta_or_M_string){
   df_all_test = as.data.frame(matrix(data=NA, nrow=3,ncol=3))
   names(df_all_test) = c("Power", "test", "ID")
   for (i in 1:all_zips){
-    all_test = run_all_test(all_zips, i)
+    all_test = run_all_test(all_zips, i,beta_or_M_string) 
     p_adjust_all_test = multitest_p_adjust(all_test,p_adjust_method_string)
     confusion_matrix = create_confusion_matrix(all_test, all_zips, i)
     calc_power_value = calc_empirical_marg_power(confusion_matrix)
@@ -305,8 +308,8 @@ for (i in 1:all_zips){
 
 
 ```{r setup, include=FALSE}
-merge_data = function(all_zips, p_adjust_method_string){
-power_calc_val = power_calc_multiple_runs(all_zips,p_adjust_method_string)
+merge_data = function(all_zips, p_adjust_method_string,beta_or_M_string){
+power_calc_val = power_calc_multiple_runs(all_zips,p_adjust_method_string,beta_or_M_string)
 parameters = get_all_parameters(all_zips)
 output_df = merge(power_calc_val, parameters, by="ID")
 return(output_df)
@@ -316,7 +319,7 @@ return(output_df)
 
 
 ```{r setup, include=FALSE}
-plot_line = function(data_df,y_parameter_string,varied_parameter_string){ 
+plot_line = function(data_df,y_parameter_string,varied_parameter_string, p_adjust_method_string,beta_or_M_string){ 
     selected_parameters_df = data_df[,names(data_df) %in% c(y_parameter_string,varied_parameter_string,"test","Power")]
 print(selected_parameters_df)
 y_parameter=y_parameter_string
@@ -342,7 +345,7 @@ fig = ggplot(selected_parameters, aes(x=Power , y=y_parameter, color = test)) +
   
     #annotate(geom = "text", label=paste(varied_parameter,"\n",unique(selected_parameters$varied_parameter[i]))) 
 varied_param_i = unique(selected_parameters$varied_parameter[i])
-png(paste0("LinePlot_",y_parameter,"_vs_Power_",varied_parameter,"_step_",varied_param_i,".png"))
+png(paste0("LinePlot_",y_parameter,"_vs_Power_",varied_parameter,"_step_",varied_param_i,"_",p_adjust_method_string,"_",beta_or_M_string,".png"))
 print(fig)
 dev.off()
 }
@@ -351,7 +354,7 @@ dev.off()
 ```
 
 ```{r setup, include=FALSE}
-heat_map = function(data_df,x_parameter_string,y_parameter_string,color_string,test_string){
+heat_map = function(data_df,x_parameter_string,y_parameter_string,color_string,test_string,p_adjust_method_string,beta_or_M_string){
 selected_parameters_df = data_df[,names(data_df) %in% c("test",color_string,x_parameter_string,y_parameter_string)]
 y_parameter = y_parameter_string
 x_parameter = x_parameter_string
@@ -368,7 +371,7 @@ fig = ggplot(selected_parameters_df, aes(x = x_parameter, y = y_parameter, fill 
   labs(x=x_parameter,y=y_parameter) +
   geom_text(aes(label = Power), color = "white", size = 5) 
 
-png(paste0("HeatMap_",y_parameter,"_vs_",x_parameter,"_colorfill_power",test_string,".png"))
+png(paste0("HeatMap_",y_parameter,"_vs_",x_parameter,"_colorfill_power",test_string,"_",p_adjust_method_string,"_",beta_or_M_string,".png"))
 print(fig)
 dev.off()
 }
@@ -377,16 +380,20 @@ dev.off()
 
 
 ```{r setup, include=FALSE}
-PowerCalc = function(num_zips,p_adjust_method_string,y_parameter_string,x_parameter_string,color_string,test_vector_string){
+PowerCalc = function(num_zips,p_adjust_method_string,beta_or_M_string,y_parameter_string,x_parameter_string,color_string,test_vector_string){
   
-  all_test_all_zips = merge_data(num_zips,p_adjust_method_string)
+  all_test_all_zips = merge_data(num_zips,p_adjust_method_string,beta_or_M_string)
   
-  write.table(all_test_all_zips, "PowerCalc_tests_results.txt", col.names = TRUE)
-  Mval_all_test = logit_transformation()
-  plot_line(Mval_all_test,y_parameter_string, x_parameter_string)
-  plot_line(all_test_all_zips,y_parameter_string, x_parameter_string)
+  write.table(all_test_all_zips, paste0("PowerCalc_tests_results_",beta_or_M_string,"_",p_adjust_method_string,".txt"), col.names = TRUE)
+  
+  plot_line(all_test_all_zips,y_parameter_string, x_parameter_string,p_adjust_method_string,beta_or_M_string)
+  
   for (test in 1:length(test_vector_string)){
-    heat_map(all_test_all_zips,x_parameter_string, y_parameter_string, color_string, test_vector_string[test])
+    heat_map(all_test_all_zips,x_parameter_string, y_parameter_string, color_string, test_vector_string[test],p_adjust_method_string,beta_or_M_string)
   }
 }
+```
+
+```{r setup, include=FALSE}
+PowerCalc(15,"BH","M","n_samples","effect_size","Power",c("t_test","limma","KS_test"))
 ```
