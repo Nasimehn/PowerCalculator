@@ -354,8 +354,8 @@ dev.off()
 ```
 
 ```{r setup, include=FALSE}
-heat_map = function(data_df,x_parameter_string,y_parameter_string,color_string,test_string,p_adjust_method_string,beta_or_M_string){
-selected_parameters_df = data_df[,names(data_df) %in% c("test",color_string,x_parameter_string,y_parameter_string)]
+heat_map = function(data_df,x_parameter_string,y_parameter_string,test_string,p_adjust_method_string,beta_or_M_string){
+selected_parameters_df = data_df[,names(data_df) %in% c("test","Power",x_parameter_string,y_parameter_string)]
 y_parameter = y_parameter_string
 x_parameter = x_parameter_string
 
