@@ -51,7 +51,7 @@ return(extracted_data)
 
 ```{r setup, include=FALSE}
 
-Simulated_data <- extract_data_from_zip(all_zips,2,"Simulated_data")
+#Simulated_data <- extract_data_from_zip(all_zips,2,"Simulated_data")
 
 ```
 
@@ -152,10 +152,28 @@ t_test_ouput = local_t_test(all_zips, zip_file_order)
 ks_output = local_Ks_test(all_zips, zip_file_order)
 local_limma_output = local_limma_test(all_zips, zip_file_order)
 all_test_output = cbind(t_test_ouput,ks_output,local_limma_output)
-all_test_p_adjusted = apply(all_test_output,2, getadjustPval)
-return(all_test_p_adjusted)
+return(all_test_output)
 }
 
+```
+
+```{r setup, include=FALSE}
+#test-statistics for all CpGs for each test
+multitest_p_adjust = function(all_test_df, p_adjust_method_string){
+  store_p_adjust = data.frame(matrix(data=NA,nrow = nrow(all_test_df), ncol = ncol(all_test_df)))
+  names(store_p_adjust) = names(all_test_df)
+  for (p_val_test in 1:ncol(all_test_df)){
+    store_p_adjust[,p_val_test] = getadjustPval(all_test_df[,p_val_test],p_adjust_method_string)
+  }
+return(store_p_adjust)
+}
+
+```
+
+```{r setup, include=FALSE}
+all_test_output = run_all_test(2,2)
+
+p_adjusted = multitest_p_adjest(all_test_output,"BH")
 ```
 
 
@@ -173,8 +191,8 @@ logit_transformation = function (Beta_matrix){
 ```{r setup, include=FALSE}
 #When you adjust the p-values are more insignificant (penalty) 
 
-getadjustPval = function(p_val_vector){
-  p_val_adjusted = p.adjust(p_val_vector, method = "BH")
+getadjustPval = function(p_val_vector, method){
+  p_val_adjusted = p.adjust(p_val_vector, method = method)
   return(p_val_adjusted)
 }
 ```
@@ -242,12 +260,13 @@ calc_empirical_marg_power = function(all_confusionMatrix_list){
 
 
 ```{r setup, include=FALSE}
-power_calc_multiple_runs = function(all_zips){
+power_calc_multiple_runs = function(all_zips, p_adjust_method_string){
   df_all_test = as.data.frame(matrix(data=NA, nrow=3,ncol=3))
   names(df_all_test) = c("Power", "test", "ID")
   for (i in 1:all_zips){
-    All_test = run_all_test(all_zips, i)
-    confusion_matrix = create_confusion_matrix(All_test, all_zips, i)
+    all_test = run_all_test(all_zips, i)
+    p_adjust_all_test = multitest_p_adjust(all_test,p_adjust_method_string)
+    confusion_matrix = create_confusion_matrix(all_test, all_zips, i)
     calc_power_value = calc_empirical_marg_power(confusion_matrix)
     calc_power_value$ID = rep(i,3) #adding new column with IDs (zip ID)
     df_all_test = rbind(df_all_test,  calc_power_value)
@@ -286,8 +305,8 @@ for (i in 1:all_zips){
 
 
 ```{r setup, include=FALSE}
-merge_data = function(all_zips){
-power_calc_val = power_calc_multiple_runs(all_zips)
+merge_data = function(all_zips, p_adjust_method_string){
+power_calc_val = power_calc_multiple_runs(all_zips,p_adjust_method_string)
 parameters = get_all_parameters(all_zips)
 output_df = merge(power_calc_val, parameters, by="ID")
 return(output_df)
@@ -358,8 +377,10 @@ dev.off()
 
 
 ```{r setup, include=FALSE}
-PowerCalc = function(num_zips,y_parameter_string,x_parameter_string,color_string,test_vector_string){
-  all_test_all_zips = merge_data(num_zips)
+PowerCalc = function(num_zips,p_adjust_method_string,y_parameter_string,x_parameter_string,color_string,test_vector_string){
+  
+  all_test_all_zips = merge_data(num_zips,p_adjust_method_string)
+  
   write.table(all_test_all_zips, "PowerCalc_tests_results.txt", col.names = TRUE)
   Mval_all_test = logit_transformation()
   plot_line(Mval_all_test,y_parameter_string, x_parameter_string)
