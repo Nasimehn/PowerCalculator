@@ -321,6 +321,8 @@ column_names = gsub(y_parameter,"y_parameter",column_names)
 column_names = gsub(varied_parameter,"varied_parameter",column_names)
 names(selected_parameters_df) = column_names
 
+save_data_name = paste0("/PowerCalc_",y_parameter_string,"_",varied_parameter_string,"/")
+
 for (i in 1:length(unique(selected_parameters_df$varied_parameter))){
 print(i)
 selected_parameters = selected_parameters_df[selected_parameters_df$varied_parameter==unique(selected_parameters_df$varied_parameter)[i],]
@@ -336,7 +338,7 @@ fig = ggplot(selected_parameters, aes(x=Power , y=y_parameter, color = test)) +
   
     #annotate(geom = "text", label=paste(varied_parameter,"\n",unique(selected_parameters$varied_parameter[i]))) 
 varied_param_i = unique(selected_parameters$varied_parameter[i])
-png(paste0("LinePlot_",y_parameter,"_vs_Power_",varied_parameter,"_step_",varied_param_i,"_",p_adjust_method_string,"_",beta_or_M_string,".png"))
+png(paste0(save_data_name ,"LinePlot_",y_parameter,"_vs_Power_",varied_parameter,"_step_",varied_param_i,"_",p_adjust_method_string,"_",beta_or_M_string,".png"))
 print(fig)
 dev.off()
 }
@@ -362,7 +364,8 @@ fig = ggplot(selected_parameters_df, aes(x = x_parameter, y = y_parameter, fill 
   labs(x=x_parameter,y=y_parameter) +
   geom_text(aes(label = Power), color = "white", size = 5) 
 
-png(paste0("HeatMap_",y_parameter,"_vs_",x_parameter,"_colorfill_Power",test_string,"_",p_adjust_method_string,"_",beta_or_M_string,".png"))
+save_data_name = paste0("/PowerCalc_",y_parameter_string,"_",x_parameter_string,"/")
+png(paste0(save_data_name,"HeatMap_",y_parameter,"_vs_",x_parameter,"_colorfill_Power",test_string,"_",p_adjust_method_string,"_",beta_or_M_string,".png"))
 print(fig)
 dev.off()
 }
@@ -372,10 +375,10 @@ dev.off()
 
 ```{r setup, include=FALSE}
 PowerCalc = function(num_zips,p_adjust_method_string,beta_or_M_string,y_parameter_string,x_parameter_string,color_string,test_vector_string){
-  
   all_test_all_zips = merge_data(num_zips,p_adjust_method_string,beta_or_M_string)
-  
-  write.table(all_test_all_zips, paste0("PowerCalc_tests_results_",beta_or_M_string,"_",p_adjust_method_string,".txt"), col.names = TRUE)
+  save_data_name = paste0("/PowerCalc_",y_parameter_string,"_",x_parameter_string,"/")
+  dir.create(paste0(getwd(),"/PowerCalc_",y_parameter_string,"_",x_parameter_string))
+  write.table(all_test_all_zips, paste0(save_data_name,"PowerCalc_tests_results_",beta_or_M_string,"_",p_adjust_method_string,".txt"), col.names = TRUE)
   
   plot_line(all_test_all_zips,y_parameter_string, x_parameter_string,p_adjust_method_string,beta_or_M_string)
   
@@ -386,5 +389,6 @@ PowerCalc = function(num_zips,p_adjust_method_string,beta_or_M_string,y_paramete
 ```
 
 ```{r setup, include=FALSE}
-PowerCalc(15,"BH","M","n_samples","effect_size","Power",c("t_test","limma","KS_test"))
+PowerCalc(6,"BH","M","n_samples","effect_size","Power",c("t_test","limma","KS_test"))
 ```
+
