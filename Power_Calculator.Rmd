@@ -9,9 +9,8 @@ output: html_document
 
 ```{r setup, include=FALSE}
 library(limma)
-library(caret)
+library(caret) # for construction of confusion matrix, confusionMatrix()
 library(ggplot2)
-#library(reshape)
 ```
 
 ```{r setup, include=FALSE}
@@ -303,6 +302,7 @@ merge_data = function(all_zips, p_adjust_method_string,beta_or_M_string){
 power_calc_val = power_calc_multiple_runs(all_zips,p_adjust_method_string,beta_or_M_string)
 parameters = get_all_parameters(all_zips)
 output_df = merge(power_calc_val, parameters, by="ID")
+print(head(output_df))
 return(output_df)
 }
 
@@ -385,20 +385,29 @@ PowerCalc = function(num_zips,p_adjust_method_string,beta_or_M_string,y_paramete
   
   for (test in 1:length(test_vector_string)){
     heat_map(all_test_all_zips,x_parameter_string, y_parameter_string, test_vector_string[test],p_adjust_method_string,beta_or_M_string)
+    print(test)
   }
   setwd("~/Documents/summer project/PowerCalculator")
 }
 ```
 
 ```{r setup, include=FALSE}
-num_zips = 15 # number of simulated data zip files
+start.time <- Sys.time()
+print(paste0("Start Time ", start.time))
+
+num_zips = 35 # number of simulated data zip files
 p_adjust_method_string = "BH" #"none"/"BH"/"bonferroni"/"fdr"
-beta_or_M_string = "beta" #"beta"/"M"
+beta_or_M_string = "M" #"beta"/"M"
 y_parameter_string = "n_samples" # "n_samples"/"n_CpGs"/"healthy_proportion"/"effect_size"/"n_modified_CpGs"
-x_parameter_string = "effec_size" # "n_samples"/"n_CpGs"/"healthy_proportion"/"effect_size"/"n_modified_CpGs"
+x_parameter_string = "n_modified_CpGs" # "n_samples"/"n_CpGs"/"healthy_proportion"/"effect_size"/"n_modified_CpGs"
 color_string = "Power"
 test_vector_string = c("t_test","limma", "KS_test")
 
 PowerCalc(num_zips,p_adjust_method_string,beta_or_M_string,y_parameter_string,x_parameter_string,color_string,test_vector_string)
+
+end.time <- Sys.time()
+print(paste0("End Time ", end.time))
+time.taken <- end.time - start.time
+print(paste0("Time Taken ", time.taken))
 ```
 
