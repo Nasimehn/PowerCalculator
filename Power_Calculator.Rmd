@@ -221,12 +221,15 @@ return(store_p_adjust)
 
 #The input is the vector with observed values within the simulated data. The output is a boolean which represents if the observation is significantly different between the two groups (0) and not significant (1)
 
-create_predicted_vector = function(p_val_vector){
-  signif_threshold = 0.05
+create_predicted_vector = function(p_val_vector, p_cut){
+  signif_threshold = as.numeric(p_cut)
   boolean_signif_p_val= ifelse (p_val_vector<signif_threshold,0,1)
   boolean_signif_p_val = as.factor(boolean_signif_p_val)
   return(boolean_signif_p_val)
 }
+
+
+
 ```
 
 
@@ -247,11 +250,11 @@ create_expected_val_vector = function(p_val_df,all_runs_zip_num,zip_order_num){
 
 ```{r setup, include=FALSE}
 #Created a confusion matrix using observed and predicted values for every CpG. Create confusion matrix for every test. 
-create_confusion_matrix = function(all_test_df, all_runs_zip_num, zip_order_num){
+create_confusion_matrix = function(all_test_df, all_runs_zip_num, zip_order_num,p_cut){
   expected = create_expected_val_vector(all_test_df, all_runs_zip_num, zip_order_num)
   confusion_matrix = list()
   for (i in 1:ncol(all_test_df)){
-  predicted = create_predicted_vector(all_test_df[,i])
+  predicted = create_predicted_vector(all_test_df[,i], p_cut)
   confusion_matrix[[i]] = confusionMatrix(data= predicted, reference=expected) 
   }
   names(confusion_matrix) = names(all_test_df)
@@ -293,13 +296,13 @@ calc_empirical_marg_power = function(all_confusionMatrix_list){
 
 ```{r setup, include=FALSE}
 #Calculate marginal power for every experimental setup 
-power_calc_multiple_runs = function(all_zips, p_adjust_method_string, beta_or_M_string){
+power_calc_multiple_runs = function(all_zips, p_adjust_method_string, beta_or_M_string, p_cut){
   df_all_test = as.data.frame(matrix(data=NA, nrow=3,ncol=3))
   names(df_all_test) = c("Power", "test", "ID")
   for (i in 1:all_zips){
     all_test = run_all_test(all_zips, i,beta_or_M_string) 
     p_adjust_all_test = multitest_p_adjust(all_test,p_adjust_method_string)
-    confusion_matrix = create_confusion_matrix(all_test, all_zips, i)
+    confusion_matrix = create_confusion_matrix(all_test, all_zips, i, p_cut)
     calc_power_value = calc_empirical_marg_power(confusion_matrix)
     calc_power_value$ID = rep(i,3) #adding new column with IDs (zip ID)
     df_all_test = rbind(df_all_test,  calc_power_value)
@@ -341,8 +344,8 @@ for (i in 1:all_zips){
 
 ```{r setup, include=FALSE}
 #Combine user parameters with the output of the power calculation step using IDs (an ID = a zip)
-merge_data = function(all_zips, p_adjust_method_string,beta_or_M_string){
-power_calc_val = power_calc_multiple_runs(all_zips,p_adjust_method_string,beta_or_M_string)
+merge_data = function(all_zips, p_adjust_method_string,beta_or_M_string, p_cut){
+power_calc_val = power_calc_multiple_runs(all_zips,p_adjust_method_string,beta_or_M_string,p_cut)
 parameters = get_all_parameters(all_zips)
 output_df = merge(power_calc_val, parameters, by="ID")
 print(head(output_df))
@@ -419,9 +422,9 @@ dev.off()
 
 ```{r setup, include=FALSE}
 #Aggregate function that calculates marginal power for all the tests across samples based on user-defined inputs. As an output it generates line plots and heat maps that shows the relationship between power and two varying parameters and three constant parameters. 
-PowerCalc = function(num_zips,p_adjust_method_string,beta_or_M_string,y_parameter_string,x_parameter_string,color_string,test_vector_string){
+PowerCalc = function(num_zips,p_adjust_method_string,beta_or_M_string,y_parameter_string,x_parameter_string,color_string,test_vector_string,p_cut){
   get_work_dir = getwd()
-  all_test_all_zips = merge_data(num_zips,p_adjust_method_string,beta_or_M_string)
+  all_test_all_zips = merge_data(num_zips,p_adjust_method_string,beta_or_M_string,p_cut)
   #save_data_name = paste0("/PowerCalc_",y_parameter_string,"_",x_parameter_string,"/")
   dir.create(paste0(getwd(),"/PowerCalc_",y_parameter_string,"_",x_parameter_string))
   setwd(paste0(getwd(),"/PowerCalc_",y_parameter_string,"_",x_parameter_string))
@@ -448,8 +451,9 @@ y_parameter_string = "n_samples" # "n_samples"/"n_CpGs"/"healthy_proportion"/"ef
 x_parameter_string = "n_modified_CpGs" # "n_samples"/"n_CpGs"/"healthy_proportion"/"effect_size"/"n_modified_CpGs"
 color_string = "Power"
 test_vector_string = c("t_test","limma", "KS_test")
+p_cut = 0.05 #0.01, 0.001
 
-PowerCalc(num_zips,p_adjust_method_string,beta_or_M_string,y_parameter_string,x_parameter_string,color_string,test_vector_string)
+PowerCalc(num_zips,p_adjust_method_string,beta_or_M_string,y_parameter_string,x_parameter_string,color_string,test_vector_string,p_cut)
 
 end.time <- Sys.time()
 print(paste0("End Time ", end.time))
