@@ -23,7 +23,7 @@ output: html_document
 #Power statistics for each 3 test statistics and line-/heat plots. 
 
 ```{r setup, include=FALSE}
-library(limma)
+library(limma) #bioconductor 
 library(caret) # for construction of confusion matrix, confusionMatrix()
 library(ggplot2)
 ```
@@ -359,19 +359,20 @@ names(selected_parameters_df) = column_names
 for (i in 1:length(unique(selected_parameters_df$varied_parameter))){
 print(i)
 selected_parameters = selected_parameters_df[selected_parameters_df$varied_parameter==unique(selected_parameters_df$varied_parameter)[i],]
-fig = ggplot(selected_parameters, aes(x=Power , y=y_parameter, color = test)) +
+fig = ggplot(selected_parameters, aes(x=y_parameter , y=Power, color = test)) +
     geom_line()+
     geom_point(aes(shape=test))+ 
-    ylim(min(selected_parameters$y_parameter),max(selected_parameters$y_parameter))+ 
-    xlim(0,1)+ 
-      labs(x="Power",y=y_parameter) +
-    theme_minimal() 
+    #xlim(min(selected_parameters$y_parameter),max(selected_parameters$y_parameter))+ 
+    ylim(0,1)+ 
+    scale_x_continuous(breaks = seq(min(selected_parameters_df$y_parameter), max(selected_parameters_df$y_parameter), by = 40))+
+      labs(x=y_parameter,y="Power") +
+    theme_minimal(base_size = 18) 
     #theme(plot.margin = unit(c(0,1,0,0),"lines")) + 
     #coord_cartesian(clip = "off") +
   
     #annotate(geom = "text", label=paste(varied_parameter,"\n",unique(selected_parameters$varied_parameter[i]))) 
 varied_param_i = unique(selected_parameters$varied_parameter[i])
-png(paste0("LinePlot_",y_parameter,"_vs_Power_",varied_parameter,"_step_",varied_param_i,"_",p_adjust_method_string,"_",beta_or_M_string,".png"))
+png(paste0("LinePlot_",y_parameter,"_vs_Power_",varied_parameter,"_step_",varied_param_i,"_",p_adjust_method_string,"_",beta_or_M_string,".png"), height = 400, units = "px")  
 print(fig)
 dev.off()
 }
